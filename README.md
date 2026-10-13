@@ -1,93 +1,101 @@
-# SolarControl-io
+# SprinklerController-io
 
-[![GitHub Release](https://img.shields.io/badge/release-v0.1.0-blue.svg)](https://github.com/Paradigm-Paradox/SolarControl-io)
 [![Home Assistant Add-on](https://img.shields.io/badge/home--assistant-add--on-blue.svg?logo=home-assistant)](https://www.home-assistant.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![Supported Architectures](https://img.shields.io/badge/arch-aarch64%20|%20amd64%20|%20armv7-green.svg)
 
-> **Intelligent, edge-native solar energy management, battery storage optimization, dynamic excess diversion, and tariff arbitrage for Home Assistant.**
+> **Intelligent, multi-zone sprinkler & irrigation management system for Home Assistant with distributed ESP32 edge microcontroller support.**
+
+<p align="center">
+  <img src="icon.png" alt="SprinklerController-io Icon" width="220" />
+</p>
 
 ---
 
 ## ⚡ Overview
 
-**SolarControl-io** turns your Home Assistant instance into a smart, local energy management system (EMS). It coordinates your solar inverters, home battery storage (BESS), EV chargers, and household loads in real time to maximize self-consumption, protect against peak electric rates, and route excess solar into hot water and vehicle batteries.
+**SprinklerController-io** turns your Home Assistant instance into an intelligent, weather-adaptive irrigation management system. It pairs Home Assistant's scheduling with edge-native **ESP32 microcontrollers** (over Wi-Fi, Ethernet, and Bluetooth) to control 24VAC solenoid valves, booster pumps, pulse flow meters, and soil moisture sensors with complete hardware fail-safe protection.
 
 ```
-       [ ☀️ Solar PV ]
-              │
-              ▼
-    [ ⚡ Hybrid Inverter ] ◄──────► [ 🔋 Battery (BESS) ]
-        ▲            │
-        │            ▼
- [ 🌐 Grid ]   [ 🏠 Home Load ]
-                     │
-         ┌───────────┴───────────┐
-         ▼                       ▼
-  [ 🚗 EV Charger ]     [ ♨️ Water Heater / HVAC ]
+                      +------------------------------------------+
+                      |          Home Assistant Core             |
+                      |  (Supervisor / Weather / Entities / DB)  |
+                      +--------------------+---------------------+
+                                           |
+                                  Ingress / REST / WS
+                                           |
+                      +--------------------v---------------------+
+                      |       SprinklerController-io             |
+                      |            (HA Add-on)                   |
+                      |  - Ingress Web UI (Dashboard & Planner)  |
+                      |  - Evapotranspiration (ET) & Rain Delay  |
+                      |  - Cycle & Soak Sequencer                |
+                      |  - GPM & Hydraulic Budget Manager        |
+                      +--------------------+---------------------+
+                                           |
+                              Home Assistant Native API / MQTT
+                                           |
+         +---------------------------------+---------------------------------+
+         |                                 |                                 |
++--------v--------+               +--------v--------+               +--------v--------+
+|  ESP32 Node 1   |               |  ESP32 Node 2   |               |  ESP32 Node 3   |
+| (Wired Ethernet)|               | (Wi-Fi 8-Relay) |               | (BLE & Sensors) |
+|   WT32-ETH01    |               |  NodeMCU-32S    |               |   ESP32-WROOM   |
++--------+--------+               +--------+--------+               +--------+--------+
+         |                                 |                                 |
+ 24VAC Solenoids                   24VAC Solenoids                   Soil Moisture (BLE)
+ Main Valve & Flow                 Lawn & Garden                     Rain Sensor & PSI
 ```
 
 ---
 
 ## 🚀 Key Features
 
-- **⚡ Real-time Power Flow & Balance Engine**: Unifies PV generation, battery charge/discharge, grid import/export, and load telemetry with low-latency closed-loop control.
-- **🔋 Battery Energy Storage Optimization**:
-  - **Self-Consumption Maximization**: Zero out grid draw using stored solar energy.
-  - **Time-of-Use (TOU) Arbitrage**: Intelligent pre-charging on super off-peak tariffs and aggressive peak-shaving.
-  - **Storm & Outage Emergency Reserve**: Automatic battery reserve floor bumping on severe weather warnings.
-- **♨️ Excess Solar Diversion (Zero-Waste Energy)**:
-  - Dynamically routes surplus solar into water heaters, heat pump thermal storage, and EV chargers instead of exporting for pennies.
-  - Anti-hunting hysteresis and minimum cycle timers protect equipment against cloud flicker.
-- **📉 Dynamic Tariff & Negative Pricing Protection**:
-  - Direct integration with Nord Pool, Tibber, Amber Electric, and wholesale dynamic tariffs.
-  - Automatic curtailment or diversion trigger when feed-in rates turn negative.
-  - Utility export limit and zero-export enforcement.
-- **🖥️ Native Home Assistant Ingress UI**:
-  - Sleek, responsive web dashboard with live animated power flow diagrams.
-  - Mode switches (`Auto Optimizer`, `Self Consumption`, `TOU Arbitrage`, `Backup Reserve`, `Manual`).
-  - Diversion priority ordering and instant manual overrides.
+- **🌐 ESP32 Microcontroller Architecture**:
+  - **Wired Ethernet / PoE (WT32-ETH01, Olimex PoE)**: Rock-solid, interference-free connection for outdoor valve boxes.
+  - **Wi-Fi Multi-Relay Nodes**: Flexible retrofits for 4/8/16-channel 24VAC sprinkler valves.
+  - **Bluetooth Low Energy (BLE)**: Active BLE tracking for battery-powered soil moisture probes (e.g., Xiaomi Mi Flora).
+- **🛡️ Hardware Edge Fail-Safes**:
+  - Auto-off watchdog timers in ESP32 firmware shut off valves even if Home Assistant or Wi-Fi goes offline mid-cycle.
+  - Hardware mutual exclusion interlocks prevent simultaneous valve opening beyond water supply pressure.
+- **💧 Cycle & Soak Scheduling**:
+  - Automatically pulses watering with soak delays to prevent water runoff on slopes and clay soils.
+- **🌤️ Weather & Water Budgeting**:
+  - Evapotranspiration (ET) calculations adjust runtimes dynamically.
+  - Automatic rain delays and freeze lockouts (< 3°C / 37°F).
+- **📊 Real-time Flow Monitoring & Leak Alarms**:
+  - Pulse-counter flow rate (GPM) tracking and unscheduled flow leak detection.
+- **🖥️ Home Assistant Ingress UI**:
+  - Responsive web dashboard embedded directly in the Home Assistant sidebar.
 
 ---
 
 ## 📦 Installation in Home Assistant
 
-1. In your Home Assistant instance, navigate to **Settings** -> **Add-ons** -> **Add-on Store**.
+1. In Home Assistant, navigate to **Settings** -> **Add-ons** -> **Add-on Store**.
 2. Click the three dots (top right) -> **Repositories**.
 3. Add this repository URL:
    ```text
-   https://github.com/Paradigm-Paradox/SolarControl-io
+   https://github.com/Paradigm-Paradox/SprinklerController-io
    ```
-4. Find **SolarControl-io** in the add-on store list and click **Install**.
-5. Configure your inverter, battery, and meter entities in the **Configuration** tab.
-6. Click **Start** and select **Show in sidebar** to access the Ingress dashboard.
+4. Find **SprinklerController-io** and click **Install**.
+5. Configure your zones and sensors, start the add-on, and open the Web UI!
 
 ---
 
 ## 📁 Repository Structure
 
 ```text
-├── solar_control/               # Complete Home Assistant Add-on
-│   ├── app/                     # Python FastAPI server & energy engine
-│   │   ├── engine/              # Power flow, battery manager, load diverter
-│   │   ├── config.py            # Options loader & pydantic models
-│   │   ├── ha_client.py         # Home Assistant Supervisor API client
-│   │   └── main.py              # Ingress web application
-│   ├── config.yaml              # Add-on configuration & options schema
-│   ├── build.yaml               # Multi-arch container base images
-│   ├── Dockerfile               # Production container definition
-│   ├── run.sh                   # Startup script
-│   ├── DOCS.md                  # Detailed user guide
-│   └── CHANGELOG.md             # Version history
-├── docs/
-│   └── DESIGN.md                # System design & architecture specification
-├── DESIGN.md                    # Architecture summary
-├── repository.yaml              # HA Add-on Repository manifest
+├── sprinkler_controller/
+│   ├── config.yaml              # Home Assistant add-on configuration & options schema
+│   ├── Dockerfile               # Multi-arch container definition
+│   ├── build.yaml               # Multi-architecture builds (aarch64, amd64, armv7)
+│   ├── DOCS.md                  # Comprehensive user and installation documentation
+│   ├── CHANGELOG.md             # Version history
+│   ├── DESIGN.md                # System architecture & hardware specs
+│   ├── templates/esphome/       # Ready-to-flash ESPHome YAML templates (Wi-Fi & Ethernet)
+│   └── rootfs/app/              # FastAPI backend & Ingress dashboard
+├── icon.png                     # Official vintage PCB sprinkler icon
+├── repository.yaml              # Add-on repository catalog manifest
 └── README.md
 ```
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

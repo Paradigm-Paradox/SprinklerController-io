@@ -30,31 +30,60 @@ ota:
 
 logger:
 
-# Relays with built-in hardware auto-off watchdog
+# Relays with built-in hardware auto-off watchdog scripts
 switch:
   - platform: gpio
-    pin: GPIO2
+    pin:
+      number: GPIO2
+      inverted: true
     name: "Zone 1 Front Lawn"
     id: zone_1
     restore_mode: ALWAYS_OFF
     on_turn_on:
-      - delay: 30min
-      - switch.turn_off: zone_1
+      - script.execute: auto_off_zone_1
+    on_turn_off:
+      - script.stop: auto_off_zone_1
 
   - platform: gpio
-    pin: GPIO4
+    pin:
+      number: GPIO4
+      inverted: true
     name: "Zone 2 Back Lawn"
     id: zone_2
     restore_mode: ALWAYS_OFF
     on_turn_on:
-      - delay: 30min
-      - switch.turn_off: zone_2
+      - script.execute: auto_off_zone_2
+    on_turn_off:
+      - script.stop: auto_off_zone_2
 
   - platform: gpio
-    pin: GPIO12
+    pin:
+      number: GPIO12
+      inverted: true
     name: "Master Solenoid Valve"
     id: master_valve
     restore_mode: ALWAYS_OFF
     on_turn_on:
+      - script.execute: auto_off_master
+    on_turn_off:
+      - script.stop: auto_off_master
+
+# Safety Watchdog Scripts
+script:
+  - id: auto_off_zone_1
+    mode: restart
+    then:
+      - delay: 30min
+      - switch.turn_off: zone_1
+
+  - id: auto_off_zone_2
+    mode: restart
+    then:
+      - delay: 30min
+      - switch.turn_off: zone_2
+
+  - id: auto_off_master
+    mode: restart
+    then:
       - delay: 60min
       - switch.turn_off: master_valve

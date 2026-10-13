@@ -11,7 +11,7 @@ esp32:
   framework:
     type: esp-idf
 
-# Enable Home Assistant API & OTA
+# Home Assistant API with Encryption
 api:
   encryption:
     key: "!secret api_encryption_key"
@@ -27,52 +27,90 @@ wifi:
 
 logger:
 
-# Bluetooth Tracker for Soil Moisture Probes (e.g., Xiaomi Mi Flora)
+# Bluetooth Low Energy Tracking for Soil Moisture Probes (e.g. Xiaomi Mi Flora)
 esp32_ble_tracker:
 
-# Hardware Fail-safe Relays with automatic shutoff timers
+# Hardware Fail-safe Relays with Script Watchdogs
 switch:
   - platform: gpio
-    pin: GPIO23
+    pin:
+      number: GPIO23
+      inverted: true # Invert if using active-low relay board
     name: "Zone 1 Front Lawn"
     id: zone_1
     restore_mode: ALWAYS_OFF
     interlock: [zone_1, zone_2, zone_3, zone_4]
     on_turn_on:
-      - delay: 30min
-      - switch.turn_off: zone_1 # Edge fail-safe auto shutoff
+      - script.execute: auto_off_zone_1
+    on_turn_off:
+      - script.stop: auto_off_zone_1
 
   - platform: gpio
-    pin: GPIO22
+    pin:
+      number: GPIO22
+      inverted: true
     name: "Zone 2 Back Lawn"
     id: zone_2
     restore_mode: ALWAYS_OFF
     interlock: [zone_1, zone_2, zone_3, zone_4]
     on_turn_on:
-      - delay: 30min
-      - switch.turn_off: zone_2
+      - script.execute: auto_off_zone_2
+    on_turn_off:
+      - script.stop: auto_off_zone_2
 
   - platform: gpio
-    pin: GPIO21
+    pin:
+      number: GPIO21
+      inverted: true
     name: "Zone 3 Garden Beds"
     id: zone_3
     restore_mode: ALWAYS_OFF
     interlock: [zone_1, zone_2, zone_3, zone_4]
     on_turn_on:
-      - delay: 30min
-      - switch.turn_off: zone_3
+      - script.execute: auto_off_zone_3
+    on_turn_off:
+      - script.stop: auto_off_zone_3
 
   - platform: gpio
-    pin: GPIO19
+    pin:
+      number: GPIO19
+      inverted: true
     name: "Zone 4 Shrubs"
     id: zone_4
     restore_mode: ALWAYS_OFF
     interlock: [zone_1, zone_2, zone_3, zone_4]
     on_turn_on:
+      - script.execute: auto_off_zone_4
+    on_turn_off:
+      - script.stop: auto_off_zone_4
+
+# Auto-shutoff safety watchdogs (cancels automatically if zone is turned off early)
+script:
+  - id: auto_off_zone_1
+    mode: restart
+    then:
+      - delay: 30min
+      - switch.turn_off: zone_1
+
+  - id: auto_off_zone_2
+    mode: restart
+    then:
+      - delay: 30min
+      - switch.turn_off: zone_2
+
+  - id: auto_off_zone_3
+    mode: restart
+    then:
+      - delay: 30min
+      - switch.turn_off: zone_3
+
+  - id: auto_off_zone_4
+    mode: restart
+    then:
       - delay: 30min
       - switch.turn_off: zone_4
 
-# Flow Meter Pulse Counter (Hall Effect or Reed Switch)
+# Pulse Counter Flow Meter (GPM)
 sensor:
   - platform: pulse_counter
     pin:
@@ -85,9 +123,9 @@ sensor:
     unit_of_measurement: "GPM"
     update_interval: 10s
     filters:
-      - multiply: 0.132 # Calibrate per pulse meter specification
+      - multiply: 0.132
 
-# Digital Rain Sensor Input (Normally Closed)
+# Physical Rain Sensor (Normally-Closed Cutoff)
 binary_sensor:
   - platform: gpio
     pin:
