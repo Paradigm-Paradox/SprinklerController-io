@@ -1,8 +1,9 @@
-# Paradigm-Paradox Master Homestead Dashboard
+# MyHomeStead.io: Master Homestead Dashboard
 # Local-First Unified View for Home Assistant
 # Load this YAML into Home Assistant -> Dashboards -> Add Dashboard (YAML Mode)
 
-title: "Paradigm Homestead"
+title: "MyHomeStead.io"
+
 views:
   # =========================================================================
   # VIEW 1: HOMESTEAD OVERVIEW

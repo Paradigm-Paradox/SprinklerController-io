@@ -1,6 +1,7 @@
-# Paradigm-Paradox Smart Homestead: Local-First Architecture & Design Specification
+# MyHomeStead.io: Local-First Architecture & Design Specification
 
 > **A sovereign, resilient, local-first automation ecosystem for Home Assistant and distributed ESP32 microcontrollers.**
+
 
 ---
 
