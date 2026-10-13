@@ -1,0 +1,103 @@
+name: "FanControl-io"
+slug: "fan_control"
+description: "Intelligent variable speed fan controller & thermal management with ESP32 (Wi-Fi, Ethernet, BLE) for rack cabinets and climate cooling"
+version: "0.1.0"
+arch:
+  - aarch64
+  - amd64
+  - armhf
+  - armv7
+  - i386
+startup: application
+boot: auto
+homeassistant_api: true
+ingress: true
+ingress_port: 8095
+panel_icon: "mdi:fan"
+panel_title: "FanControl"
+init: false
+
+map:
+  - config:rw
+  - share:rw
+
+options:
+  log_level: "info"
+  system_name: "Server Rack Cabinet Fan Controller"
+  control_mode: "auto"
+  update_interval_seconds: 5
+  safety:
+    emergency_temp_c: 45.0
+    emergency_speed_pct: 100
+    stall_detection_enabled: true
+    min_stall_rpm: 200
+    sensor_timeout_seconds: 30
+  thermal_targets:
+    target_intake_c: 24.0
+    target_exhaust_c: 32.0
+    max_delta_t_c: 8.0
+  sensors:
+    intake_temp_entity: ""
+    exhaust_temp_entity: ""
+    cabinet_ambient_entity: ""
+    server_cpu_entity: ""
+    ble_probe_entity: ""
+  fans:
+    - name: "Rack Top Exhaust Fan 1"
+      type: "4pin_pwm"
+      speed_entity: ""
+      rpm_entity: ""
+      min_pwm_pct: 15
+      max_pwm_pct: 100
+      curve_profile: "balanced"
+    - name: "Rack Top Exhaust Fan 2"
+      type: "4pin_pwm"
+      speed_entity: ""
+      rpm_entity: ""
+      min_pwm_pct: 15
+      max_pwm_pct: 100
+      curve_profile: "balanced"
+    - name: "Rack Front Intake Fan"
+      type: "4pin_pwm"
+      speed_entity: ""
+      rpm_entity: ""
+      min_pwm_pct: 15
+      max_pwm_pct: 100
+      curve_profile: "silent"
+    - name: "Equipment Spot Blower"
+      type: "4pin_pwm"
+      speed_entity: ""
+      rpm_entity: ""
+      min_pwm_pct: 20
+      max_pwm_pct: 100
+      curve_profile: "performance"
+
+schema:
+  log_level: "list(trace|debug|info|notice|warning|error|fatal)?"
+  system_name: "str?"
+  control_mode: "list(auto|silent|balanced|performance|turbo|manual)?"
+  update_interval_seconds: "int?"
+  safety:
+    emergency_temp_c: "float?"
+    emergency_speed_pct: "int?"
+    stall_detection_enabled: "bool?"
+    min_stall_rpm: "int?"
+    sensor_timeout_seconds: "int?"
+  thermal_targets:
+    target_intake_c: "float?"
+    target_exhaust_c: "float?"
+    max_delta_t_c: "float?"
+  sensors:
+    intake_temp_entity: "str?"
+    exhaust_temp_entity: "str?"
+    cabinet_ambient_entity: "str?"
+    server_cpu_entity: "str?"
+    ble_probe_entity: "str?"
+  fans:
+    - name: "str"
+      type: "list(4pin_pwm|3pin_voltage|0_10v_ec)?"
+      speed_entity: "str?"
+      rpm_entity: "str?"
+      min_pwm_pct: "int?"
+      max_pwm_pct: "int?"
+      curve_profile: "list(silent|balanced|performance|custom)?"

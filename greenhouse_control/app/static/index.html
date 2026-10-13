@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GreenhouseControl-io</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <header class="navbar">
+      <div class="brand">
+        <img src="static/logo.png" alt="Logo" class="logo-img" style="width: 38px; height: 38px; border-radius: 8px;">
+        <h1>GreenhouseControl<span class="brand-suffix">.io</span></h1>
+      </div>
+      <div class="system-status">
+        <span class="status-indicator active" id="haStatusIndicator"></span>
+        <span id="haStatusText">HA Connected</span>
+      </div>
+    </header>
+
+    <main class="dashboard-grid">
+      <!-- VPD Card -->
+      <section class="card vpd-card">
+        <div class="card-header">
+          <h2>Vapor Pressure Deficit (VPD)</h2>
+          <span class="badge" id="vpdStatusBadge">Optimal</span>
+        </div>
+        <div class="vpd-display">
+          <div class="vpd-main-value">
+            <span class="metric-number" id="leafVpdValue">1.02</span>
+            <span class="metric-unit">kPa</span>
+            <div class="metric-sublabel">Leaf Canopy VPD</div>
+          </div>
+          <div class="vpd-secondary">
+            <div>Air VPD: <strong id="airVpdValue">1.15 kPa</strong></div>
+            <div>Target: <strong id="targetVpdRange">0.80 - 1.20 kPa</strong></div>
+          </div>
+        </div>
+        <div class="vpd-bar-container">
+          <div class="vpd-bar-track">
+            <div class="vpd-zone zone-low" title="Low VPD (0 - 0.8)"></div>
+            <div class="vpd-zone zone-optimal" title="Optimal VPD (0.8 - 1.2)"></div>
+            <div class="vpd-zone zone-high" title="High VPD (1.2+)"></div>
+            <div class="vpd-needle" id="vpdNeedle" style="left: 50%;"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Climate Telemetry Card -->
+      <section class="card telemetry-card">
+        <div class="card-header">
+          <h2>Environmental Conditions</h2>
+        </div>
+        <div class="metrics-grid">
+          <div class="metric-item">
+            <div class="metric-icon">🌡️</div>
+            <div class="metric-details">
+              <span class="metric-label">Air Temperature</span>
+              <span class="metric-val" id="airTempValue">24.5 °C</span>
+            </div>
+          </div>
+          <div class="metric-item">
+            <div class="metric-icon">💧</div>
+            <div class="metric-details">
+              <span class="metric-label">Relative Humidity</span>
+              <span class="metric-val" id="humidityValue">65.0 %</span>
+            </div>
+          </div>
+          <div class="metric-item">
+            <div class="metric-icon">🍃</div>
+            <div class="metric-details">
+              <span class="metric-label">Effective Leaf Temp</span>
+              <span class="metric-val" id="leafTempValue">22.5 °C</span>
+            </div>
+          </div>
+          <div class="metric-item">
+            <div class="metric-icon">🌫️</div>
+            <div class="metric-details">
+              <span class="metric-label">Dew Point</span>
+              <span class="metric-val" id="dewPointValue">17.4 °C</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Irrigation & Soil Card -->
+      <section class="card irrigation-card">
+        <div class="card-header">
+          <h2>Soil Moisture & Irrigation</h2>
+          <span class="badge" id="irrigationStatusBadge">Standby</span>
+        </div>
+        <div class="irrigation-content">
+          <div class="metric-large">
+            <span class="metric-number" id="soilMoistureValue">48.2</span>
+            <span class="metric-unit">% VWC</span>
+          </div>
+          <div class="irrigation-settings">
+            <p>Target Moisture: <strong>45%</strong></p>
+            <p>Safety Watchdog: <strong>120s max runtime</strong></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Actuator Status & Overrides -->
+      <section class="card actuators-card">
+        <div class="card-header">
+          <h2>Actuators & Equipment</h2>
+        </div>
+        <div class="actuators-list">
+          <div class="actuator-row">
+            <span>Exhaust Fan</span>
+            <span class="toggle-status" id="exhaustStatus">OFF</span>
+          </div>
+          <div class="actuator-row">
+            <span>Circulation Fan</span>
+            <span class="toggle-status on" id="circulationStatus">ON</span>
+          </div>
+          <div class="actuator-row">
+            <span>Humidifier / Misting</span>
+            <span class="toggle-status" id="humidifierStatus">OFF</span>
+          </div>
+          <div class="actuator-row">
+            <span>Climate Heating</span>
+            <span class="toggle-status" id="heaterStatus">OFF</span>
+          </div>
+          <div class="actuator-row">
+            <span>Irrigation Valve</span>
+            <span class="toggle-status" id="valveStatus">OFF</span>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>GreenhouseControl-io v0.1.0 • Paradigm Paradox</span>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SolarControl-io Dashboard</title>
+  <style>
+    :root {
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --solar: #f59e0b;
+      --battery: #10b981;
+      --grid: #38bdf8;
+      --home: #ec4899;
+      --ev: #8b5cf6;
+      --accent: #6366f1;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg-color); color: var(--text-main); padding: 1.5rem; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+    .title-group { display: flex; align-items: center; gap: 0.75rem; }
+    .badge { background: #064e3b; color: #34d399; font-size: 0.75rem; padding: 0.25rem 0.6rem; border-radius: 9999px; font-weight: 600; }
+    .grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+    .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 0.75rem; padding: 1.25rem; }
+    .card-title { font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+    .card-value { font-size: 1.75rem; font-weight: 700; display: flex; align-items: baseline; gap: 0.35rem; }
+    .card-unit { font-size: 0.9rem; color: var(--text-muted); font-weight: 400; }
+    .card-subtext { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.4rem; }
+    
+    .solar-val { color: var(--solar); }
+    .battery-val { color: var(--battery); }
+    .grid-val { color: var(--grid); }
+    .home-val { color: var(--home); }
+    
+    /* Power Flow Canvas */
+    .flow-section { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1.5rem; text-align: center; }
+    .flow-diagram { display: flex; justify-content: center; align-items: center; position: relative; min-height: 260px; }
+    .node-hub { width: 90px; height: 90px; border-radius: 50%; background: #334155; border: 2px dashed #64748b; display: flex; align-items: center; justify-content: center; font-weight: 700; z-index: 2; font-size: 0.85rem; }
+    .node { position: absolute; width: 100px; height: 100px; border-radius: 1rem; background: #1e293b; border: 2px solid; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 2; padding: 0.5rem; }
+    .node-solar { top: 0; left: 50%; transform: translateX(-50%); border-color: var(--solar); }
+    .node-grid { top: 50%; left: 10%; transform: translateY(-50%); border-color: var(--grid); }
+    .node-home { top: 50%; right: 10%; transform: translateY(-50%); border-color: var(--home); }
+    .node-battery { bottom: 0; left: 50%; transform: translateX(-50%); border-color: var(--battery); }
+    
+    /* Control Bar */
+    .controls { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+    .btn { background: #334155; border: none; color: #fff; padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .btn:hover { background: #475569; }
+    .btn.active { background: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="title-group">
+      <h1>⚡ SolarControl-io</h1>
+      <span class="badge" id="system-status">OPTIMAL DISPATCH</span>
+    </div>
+    <div class="controls">
+      <button class="btn active" onclick="setMode('auto')">Auto</button>
+      <button class="btn" onclick="setMode('self_consumption')">Self Consumption</button>
+      <button class="btn" onclick="setMode('tou_arbitrage')">TOU Arbitrage</button>
+      <button class="btn" onclick="setMode('backup_reserve')">Backup Reserve</button>
+      <button class="btn" onclick="setMode('manual')">Manual</button>
+    </div>
+  </div>
+
+  <div class="grid-container">
+    <div class="card">
+      <div class="card-title">☀️ Solar Generation</div>
+      <div class="card-value solar-val"><span id="solar-w">0.0</span> <span class="card-unit">W</span></div>
+      <div class="card-subtext">Yield Today: <span id="solar-yield">0.0</span> kWh</div>
+    </div>
+    <div class="card">
+      <div class="card-title">🔋 Battery Storage</div>
+      <div class="card-value battery-val"><span id="battery-w">0.0</span> <span class="card-unit">W</span></div>
+      <div class="card-subtext">SoC: <strong id="battery-soc">0%</strong></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🌐 Grid Exchange</div>
+      <div class="card-value grid-val"><span id="grid-w">0.0</span> <span class="card-unit">W</span></div>
+      <div class="card-subtext">Status: <span id="grid-status">Idle</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🏠 Home Consumption</div>
+      <div class="card-value home-val"><span id="home-w">0.0</span> <span class="card-unit">W</span></div>
+      <div class="card-subtext">Self-Sufficiency: <strong id="self-suff">100%</strong></div>
+    </div>
+  </div>
+
+  <div class="flow-section">
+    <h3 style="margin-bottom: 1.5rem; text-align: left;">Live Power Flow</h3>
+    <div class="flow-diagram">
+      <div class="node node-solar">
+        <span style="font-size: 1.25rem;">☀️</span>
+        <strong id="flow-solar">0 W</strong>
+        <span style="font-size: 0.7rem; color: var(--text-muted)">SOLAR</span>
+      </div>
+      <div class="node node-grid">
+        <span style="font-size: 1.25rem;">🌐</span>
+        <strong id="flow-grid">0 W</strong>
+        <span style="font-size: 0.7rem; color: var(--text-muted)">GRID</span>
+      </div>
+      <div class="node-hub">INVERTER</div>
+      <div class="node node-home">
+        <span style="font-size: 1.25rem;">🏠</span>
+        <strong id="flow-home">0 W</strong>
+        <span style="font-size: 0.7rem; color: var(--text-muted)">HOME</span>
+      </div>
+      <div class="node node-battery">
+        <span style="font-size: 1.25rem;">🔋</span>
+        <strong id="flow-battery">0 W</strong>
+        <span style="font-size: 0.7rem; color: var(--text-muted)">BATTERY</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function updateTelemetry() {
+      try {
+        const res = await fetch("api/state");
+        if (!res.ok) return;
+        const data = await res.json();
+        const pf = data.power_flow;
+        
+        document.getElementById("solar-w").textContent = pf.solar_w;
+        document.getElementById("solar-yield").textContent = pf.daily_solar_kwh;
+        document.getElementById("battery-w").textContent = pf.battery_w;
+        document.getElementById("battery-soc").textContent = pf.battery_soc + "%";
+        document.getElementById("grid-w").textContent = Math.abs(pf.grid_w);
+        document.getElementById("grid-status").textContent = pf.grid_w > 0 ? "Importing" : (pf.grid_w < 0 ? "Exporting" : "Idle");
+        document.getElementById("home-w").textContent = pf.home_w;
+        document.getElementById("self-suff").textContent = pf.self_sufficiency_pct + "%";
+        
+        document.getElementById("flow-solar").textContent = pf.solar_w + " W";
+        document.getElementById("flow-grid").textContent = pf.grid_w + " W";
+        document.getElementById("flow-battery").textContent = pf.battery_w + " W";
+        document.getElementById("flow-home").textContent = pf.home_w + " W";
+        document.getElementById("system-status").textContent = data.status_message.toUpperCase();
+      } catch (e) {
+        console.error("Telemetry fetch error:", e);
+      }
+    }
+
+    async function setMode(mode) {
+      try {
+        await fetch("api/mode", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode: mode })
+        });
+        document.querySelectorAll(".controls .btn").forEach(btn => btn.classList.remove("active"));
+        event.target.classList.add("active");
+        updateTelemetry();
+      } catch (e) {
+        console.error("Error setting mode:", e);
+      }
+    }
+
+    setInterval(updateTelemetry, 3000);
+    updateTelemetry();
+  </script>
+</body>
+</html>

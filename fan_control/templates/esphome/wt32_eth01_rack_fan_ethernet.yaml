@@ -1,0 +1,136 @@
+substitutions:
+  name: "wt32-eth01-rack-fan-controller"
+  friendly_name: "WT32-ETH01 Wired Rack Fan Controller"
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+# Wired 10/100 Ethernet (LAN8720 PHY on WT32-ETH01)
+ethernet:
+  type: LAN8720
+  mdc_pin: GPIO23
+  mdio_pin: GPIO18
+  clk_mode: GPIO0_IN
+  phy_addr: 1
+  power_pin: GPIO16
+
+logger:
+
+api:
+  reboot_timeout: 0s
+
+ota:
+  - platform: esphome
+
+# 1-Wire Bus for DS18B20 Rack Probes (Intake & Exhaust)
+one_wire:
+  - platform: gpio
+    pin: GPIO4
+    id: dallas_bus
+
+sensor:
+  - platform: dallas_temp
+    one_wire_id: dallas_bus
+    index: 0
+    name: "Rack Lower Intake Temp"
+    id: temp_intake
+    update_interval: 5s
+
+  - platform: dallas_temp
+    one_wire_id: dallas_bus
+    index: 1
+    name: "Rack Upper Exhaust Temp"
+    id: temp_exhaust
+    update_interval: 5s
+
+  # Tachometer Pulse Counters for 4 Fans
+  - platform: pulse_counter
+    pin:
+      number: GPIO36  # Sensor VN
+      mode:
+        input: true
+    name: "Rack Fan 1 RPM"
+    id: fan1_rpm
+    unit_of_measurement: "RPM"
+    filters:
+      - multiply: 30.0
+    update_interval: 2s
+
+  - platform: pulse_counter
+    pin:
+      number: GPIO39  # Sensor VP
+      mode:
+        input: true
+    name: "Rack Fan 2 RPM"
+    id: fan2_rpm
+    unit_of_measurement: "RPM"
+    filters:
+      - multiply: 30.0
+    update_interval: 2s
+
+  - platform: pulse_counter
+    pin:
+      number: GPIO34
+      mode:
+        input: true
+    name: "Rack Fan 3 RPM"
+    id: fan3_rpm
+    unit_of_measurement: "RPM"
+    filters:
+      - multiply: 30.0
+    update_interval: 2s
+
+  - platform: pulse_counter
+    pin:
+      number: GPIO35
+      mode:
+        input: true
+    name: "Rack Fan 4 RPM"
+    id: fan4_rpm
+    unit_of_measurement: "RPM"
+    filters:
+      - multiply: 30.0
+    update_interval: 2s
+
+# 4-Channel 25 kHz PWM Outputs for 4-Pin Fans
+output:
+  - platform: ledc
+    pin: GPIO14
+    id: fan_pwm_1
+    frequency: 25000 Hz
+
+  - platform: ledc
+    pin: GPIO15
+    id: fan_pwm_2
+    frequency: 25000 Hz
+
+  - platform: ledc
+    pin: GPIO17
+    id: fan_pwm_3
+    frequency: 25000 Hz
+
+  - platform: ledc
+    pin: GPIO5
+    id: fan_pwm_4
+    frequency: 25000 Hz
+
+# Home Assistant Fans
+fan:
+  - platform: speed
+    output: fan_pwm_1
+    name: "Rack Exhaust Fan 1"
+  - platform: speed
+    output: fan_pwm_2
+    name: "Rack Exhaust Fan 2"
+  - platform: speed
+    output: fan_pwm_3
+    name: "Rack Intake Fan 1"
+  - platform: speed
+    output: fan_pwm_4
+    name: "Rack Equipment Spot Fan"

@@ -1,0 +1,85 @@
+# AirQuality-io: High-Precision Indoor/Outdoor Air Quality & NDIR CO2 Node
+# Part of the Paradigm-Paradox Smart Homestead Ecosystem (Local-First)
+# Hardware: ESP32 or ESP32-C3 with Sensirion SPS30 (Laser PM) & Sensirion SCD40 (Photoacoustic CO2)
+
+esphome:
+  name: air-quality-station
+  friendly_name: "Air Quality Station"
+  comment: "Local-first particulate, true NDIR CO2 and microclimate monitor"
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+wifi:
+  ssid: "!secret wifi_ssid"
+  password: "!secret wifi_password"
+
+api:
+  encryption:
+    key: "!secret airquality_noise_key"
+
+ota:
+  - platform: esphome
+
+logger:
+  level: INFO
+
+# Standard I2C Bus:
+# GPIO 21: SDA (include 4.7k pullup to 3.3V)
+# GPIO 22: SCL (include 4.7k pullup to 3.3V)
+i2c:
+  sda: GPIO21
+  scl: GPIO22
+  scan: true
+  id: bus_a
+
+sensor:
+  # 1. Sensirion SCD40 / SCD41 Photoacoustic NDIR CO2 + Temperature + Humidity
+  - platform: scd4x
+    co2:
+      name: "Indoor Carbon Dioxide (CO2)"
+      id: indoor_co2
+      accuracy_decimals: 0
+    temperature:
+      name: "Indoor Air Temperature"
+      id: indoor_temp
+      accuracy_decimals: 1
+    humidity:
+      name: "Indoor Relative Humidity"
+      id: indoor_humidity
+      accuracy_decimals: 1
+    update_interval: 30s
+
+  # 2. Sensirion SPS30 Laser Particulate Matter Sensor (PM1.0, PM2.5, PM4.0, PM10)
+  - platform: sps30
+    pm_1_0:
+      name: "Indoor PM1.0 Ultra-Fine Particulate"
+      id: pm_1_0
+    pm_2_5:
+      name: "Indoor PM2.5 Fine Particulate"
+      id: pm_2_5
+      # Auto trigger filtration scrubber if PM2.5 > 15 ug/m3
+      on_value_range:
+        - above: 15.0
+          then:
+            - switch.turn_on: scrubber_relay
+        - below: 5.0
+          then:
+            - switch.turn_off: scrubber_relay
+    pm_4_0:
+      name: "Indoor PM4.0 Particulate"
+      id: pm_4_0
+    pm_10_0:
+      name: "Indoor PM10 Coarse Particulate / Dust"
+      id: pm_10_0
+    address: 0x69
+    update_interval: 30s
+
+switch:
+  - platform: gpio
+    pin: GPIO4
+    name: "Air Filtration Scrubber Fan Relay"
+    id: scrubber_relay
+    icon: "mdi:air-filter"

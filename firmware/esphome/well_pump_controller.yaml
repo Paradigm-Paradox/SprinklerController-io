@@ -1,0 +1,123 @@
+# WellPumpControl-io: Submersible Well Pump, Borehole Depth & Pressure Controller
+# Part of the Paradigm-Paradox Smart Homestead Ecosystem (Local-First)
+# Hardware: WT32-ETH01 (LAN8720A Ethernet) or ESP32-WROOM with Ethernet/Wi-Fi
+
+esphome:
+  name: well-pump-controller
+  friendly_name: "Well Pump Controller"
+  comment: "Local-first borehole depth, pressure management & dry-run fail-safe"
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+# Optional: Wired Ethernet via LAN8720A (WT32-ETH01)
+ethernet:
+  type: LAN8720
+  mdc_pin: GPIO23
+  mdio_pin: GPIO18
+  clk_mode: GPIO0_IN
+  phy_addr: 1
+  power_pin: GPIO16
+
+api:
+  encryption:
+    key: "!secret well_pump_noise_key"
+
+ota:
+  - platform: esphome
+
+logger:
+  level: INFO
+
+# GPIO Pin Allocation (Enforcing ADC1 for Wi-Fi/Ethernet safety):
+# GPIO 36 (SENSOR_VP): 4-20mA Hydrostatic Borehole Depth Sensor (via 150Ω resistor: 0.6V - 3.0V)
+# GPIO 39 (SENSOR_VN): 0.5V - 4.5V Hydraulic Pressure Transducer (via 2:1 voltage divider)
+# GPIO 4: High-Current Pump Contactor Relay (Optocoupled, Active-Low)
+# GPIO 34: Physical Dry-Run Emergency Float Switch Input (Internal/External Pull-Up)
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO34
+      mode: INPUT
+      inverted: true
+    name: "Well Borehole Low Water Float Switch"
+    id: float_switch
+    filters:
+      - delayed_on: 100ms
+      - delayed_off: 100ms
+    on_press:
+      - logger.log: "EMERGENCY: Borehole low water switch tripped! Disabling pump."
+      - switch.turn_off: pump_contactor
+
+sensor:
+  # 1. Hydrostatic Borehole Water Level Sensor (4-20mA -> 0.6V - 3.0V)
+  - platform: adc
+    pin: GPIO36
+    name: "Well Borehole Water Column Depth"
+    id: borehole_depth
+    update_interval: 5s
+    attenuation: 11db
+    unit_of_measurement: "ft"
+    accuracy_decimals: 1
+    device_class: distance
+    state_class: measurement
+    filters:
+      - median:
+          window_size: 7
+          send_every: 4
+      # Calibrate: 0.6V = 0 ft (empty), 3.0V = 150 ft (full water column)
+      - calibrate_linear:
+          - 0.60 -> 0.0
+          - 3.00 -> 150.0
+    on_value_range:
+      - below: 15.0
+        then:
+          - logger.log: "CRITICAL: Water level below 15ft minimum safety column! Tripping dry-run lockout."
+          - switch.turn_off: pump_contactor
+
+  # 2. Hydraulic System Pressure Transducer (0.5V - 4.5V scaled down to 0.33V - 2.97V)
+  - platform: adc
+    pin: GPIO39
+    name: "System Hydraulic Pressure"
+    id: system_pressure
+    update_interval: 2s
+    attenuation: 11db
+    unit_of_measurement: "psi"
+    accuracy_decimals: 1
+    device_class: pressure
+    state_class: measurement
+    filters:
+      - sliding_window_moving_average:
+          window_size: 5
+          send_every: 2
+      # Calibrate: 0.33V = 0 PSI, 2.97V = 100 PSI
+      - calibrate_linear:
+          - 0.33 -> 0.0
+          - 2.97 -> 100.0
+    on_value_range:
+      - above: 65.0
+        then:
+          - logger.log: "High cut-off pressure (65 PSI) reached. Shutting down pump."
+          - switch.turn_off: pump_contactor
+
+switch:
+  - platform: gpio
+    pin:
+      number: GPIO4
+      inverted: true
+    name: "Well Pump Contactor"
+    id: pump_contactor
+    icon: "mdi:water-pump"
+    # HARDWARE FAIL-SAFE WATCHDOG:
+    # Under no circumstances may pump run longer than 45 minutes continuously.
+    on_turn_on:
+      - delay: 45min
+      - if:
+          condition:
+            switch.is_on: pump_contactor
+          then:
+            - logger.log: "FAIL-SAFE TRIGGERED: Pump ran continuous 45 min limit! Turning off."
+            - switch.turn_off: pump_contactor

@@ -1,0 +1,134 @@
+# SoilSense-io: RS485 Modbus 7-in-1 Soil Telemetry Node
+# Part of the Paradigm-Paradox Smart Homestead Ecosystem (Local-First)
+# Hardware: ESP32 with MAX485/SP3485 Transceiver + 7-in-1 Soil Probe (NPK, EC, pH, Temp, Moisture)
+
+esphome:
+  name: soilsense-modbus-node
+  friendly_name: "SoilSense Modbus Node"
+  comment: "Local-first field soil telemetry for regenerative homestead agriculture"
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+wifi:
+  ssid: "!secret wifi_ssid"
+  password: "!secret wifi_password"
+
+api:
+  encryption:
+    key: "!secret soilsense_noise_key"
+
+ota:
+  - platform: esphome
+
+logger:
+  level: INFO
+
+# Hardware UART2 for RS485:
+# GPIO 16: RX from MAX485 RO
+# GPIO 17: TX to MAX485 DI
+# GPIO 18: DE/RE Flow Control Pin
+uart:
+  id: modbus_uart
+  tx_pin: GPIO17
+  rx_pin: GPIO16
+  baud_rate: 9600
+  stop_bits: 1
+
+modbus:
+  flow_control_pin: GPIO18
+  id: modbus_soil
+
+modbus_controller:
+  - id: soil_probe_1
+    address: 0x01
+    modbus_id: modbus_soil
+    setup_priority: -10
+
+sensor:
+  - platform: modbus_controller
+    modbus_controller_id: soil_probe_1
+    name: "Field Alpha Soil Moisture"
+    id: soil_moisture
+    address: 0x0000
+    register_type: holding
+    value_type: U_WORD
+    unit_of_measurement: "%"
+    accuracy_decimals: 1
+    device_class: moisture
+    state_class: measurement
+    filters:
+      - multiply: 0.1
+
+  - platform: modbus_controller
+    modbus_controller_id: soil_probe_1
+    name: "Field Alpha Soil Temperature"
+    id: soil_temperature
+    address: 0x0001
+    register_type: holding
+    value_type: S_WORD
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+    device_class: temperature
+    state_class: measurement
+    filters:
+      - multiply: 0.1
+
+  - platform: modbus_controller
+    modbus_controller_id: soil_probe_1
+    name: "Field Alpha Soil Electrical Conductivity"
+    id: soil_ec
+    address: 0x0002
+    register_type: holding
+    value_type: U_WORD
+    unit_of_measurement: "µS/cm"
+    accuracy_decimals: 0
+    state_class: measurement
+
+  - platform: modbus_controller
+    modbus_controller_id: soil_probe_1
+    name: "Field Alpha Soil pH"
+    id: soil_ph
+    address: 0x0003
+    register_type: holding
+    value_type: U_WORD
+    unit_of_measurement: "pH"
+    accuracy_decimals: 2
+    state_class: measurement
+    filters:
+      - multiply: 0.01
+
+  - platform: modbus_controller
+    modbus_controller_id: soil_probe_1
+    name: "Field Alpha Soil Nitrogen (N)"
+    id: soil_nitrogen
+    address: 0x0004
+    register_type: holding
+    value_type: U_WORD
+    unit_of_measurement: "mg/kg"
+    accuracy_decimals: 0
+    state_class: measurement
+
+  - platform: modbus_controller
+    modbus_controller_id: soil_probe_1
+    name: "Field Alpha Soil Phosphorus (P)"
+    id: soil_phosphorus
+    address: 0x0005
+    register_type: holding
+    value_type: U_WORD
+    unit_of_measurement: "mg/kg"
+    accuracy_decimals: 0
+    state_class: measurement
+
+  - platform: modbus_controller
+    modbus_controller_id: soil_probe_1
+    name: "Field Alpha Soil Potassium (K)"
+    id: soil_potassium
+    address: 0x0006
+    register_type: holding
+    value_type: U_WORD
+    unit_of_measurement: "mg/kg"
+    accuracy_decimals: 0
+    state_class: measurement
