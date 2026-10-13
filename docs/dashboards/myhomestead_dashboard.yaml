@@ -1,9 +1,8 @@
 # MyHomeStead.io: Master Homestead Dashboard
-# Local-First Unified View for Home Assistant
+# Local-First Sovereign Unified View for Home Assistant
 # Load this YAML into Home Assistant -> Dashboards -> Add Dashboard (YAML Mode)
 
 title: "MyHomeStead.io"
-
 views:
   # =========================================================================
   # VIEW 1: HOMESTEAD OVERVIEW
@@ -16,6 +15,8 @@ views:
         name: "PV Generation"
       - entity: sensor.battery_bank_total_soc
         name: "Battery SoC"
+      - entity: sensor.water_tank_storage_level_percent
+        name: "Water Storage"
       - entity: sensor.well_casing_water_depth_ft
         name: "Well Depth"
       - entity: sensor.air_quality_indoor_pm2_5
@@ -26,7 +27,7 @@ views:
       - type: horizontal-stack
         cards:
           - type: glance
-            title: "⚡ Energy & Grid Status"
+            title: "⚡ Energy & Storage"
             show_name: true
             show_state: true
             entities:
@@ -39,18 +40,18 @@ views:
               - entity: binary_sensor.backup_grid_presence
                 name: "Grid Active"
           - type: glance
-            title: "💧 Water Reserves & Irrigation"
+            title: "💧 Water Lifeline"
             show_name: true
             show_state: true
             entities:
+              - entity: sensor.water_tank_storage_level_percent
+                name: "Cistern Level"
               - entity: sensor.well_casing_water_depth_ft
-                name: "Well Level"
-              - entity: sensor.well_system_pressure_psi
-                name: "Pressure"
+                name: "Well Depth"
+              - entity: sensor.rain_harvest_daily_volume_gal
+                name: "Rain Captured"
               - entity: sensor.sprinkler_flow_rate_gpm
-                name: "Current GPM"
-              - entity: binary_sensor.sprinkler_rain_delay_active
-                name: "Rain Delay"
+                name: "Irrigation GPM"
 
       - type: horizontal-stack
         cards:
@@ -59,30 +60,30 @@ views:
             entities:
               - entity: sensor.greenhouse_canopy_leaf_vpd
                 name: "Greenhouse Leaf VPD"
-              - entity: sensor.greenhouse_canopy_air_temp
-                name: "Canopy Temperature"
               - entity: sensor.hydro_dwc_reservoir_ph
                 name: "Hydro Reservoir pH"
               - entity: sensor.hydro_dwc_reservoir_ec
                 name: "Hydro Reservoir EC"
-              - entity: sensor.garden_bed_1_soil_moisture
-                name: "Bed 1 Moisture"
+              - entity: sensor.soil_field_alpha_moisture
+                name: "Field Soil Moisture"
+              - entity: sensor.compost_pile_core_temp_c
+                name: "Compost Core Temperature"
           - type: entities
-            title: "🏡 Homestead & Logistics Vitals"
+            title: "🏡 Livestock & Homestead Infrastructure"
             entities:
+              - entity: sensor.livestock_trough_water_temp_c
+                name: "Livestock Water Temp"
+              - entity: sensor.pantry_bulk_flour_weight_lbs
+                name: "Bulk Grain / Flour Scale"
               - entity: sensor.air_quality_indoor_pm2_5
                 name: "Indoor Air Quality (PM2.5)"
               - entity: sensor.waste_compost_fill_percent
                 name: "Compost Bin Fill"
-              - entity: sensor.pantry_bulk_flour_weight_lbs
-                name: "Pantry Bulk Grain / Flour"
               - entity: binary_sensor.security_perimeter_alarm
                 name: "Perimeter Security"
-              - entity: device_tracker.transport_truck_ble
-                name: "Homestead Transport"
 
   # =========================================================================
-  # VIEW 2: ENERGY & POWER (SolarControl, BatteryBankControl, BackupPower, LoadBalancer)
+  # VIEW 2: ENERGY & STORAGE (SolarControl, BatteryBankControl, BackupPower, LoadBalancer)
   # =========================================================================
   - title: "Energy & Storage"
     path: "energy"
@@ -108,7 +109,7 @@ views:
           - entity: sensor.battery_bank_bus_voltage
             name: "Bus Voltage (V)"
           - entity: sensor.battery_bank_net_current
-            name: "Net Charge/Discharge Current"
+            name: "Net Current (A)"
           - entity: sensor.battery_bank_min_cell_voltage
             name: "Lowest Cell Voltage"
           - entity: sensor.battery_bank_max_cell_temp
@@ -120,7 +121,7 @@ views:
             title: "⚡ Backup Power & ATS (BackupPower-io)"
             entities:
               - entity: binary_sensor.backup_grid_presence
-                name: "Grid Utility Connection"
+                name: "Grid Utility Line"
               - entity: binary_sensor.backup_ats_position
                 name: "Automatic Transfer Switch"
               - entity: switch.backup_generator_autostart
@@ -136,40 +137,71 @@ views:
                 name: "HVAC Load Shedding"
 
   # =========================================================================
-  # VIEW 3: WATER LIFELINE (WellPumpControl, SprinklerController, GardenControl, HydroControl)
+  # VIEW 3: WATER LIFELINE (WellPump, RainHarvest, WaterTank, Filtration, Sprinkler, Garden)
   # =========================================================================
-  - title: "Water & Irrigation"
+  - title: "Water Lifeline"
     path: "water"
     icon: "mdi:water-pump"
     cards:
-      - type: entities
-        title: "🚰 Borehole & Well Pumping (WellPumpControl-io)"
-        entities:
-          - entity: sensor.well_casing_water_depth_ft
-            name: "Submersible Borehole Depth"
-          - entity: sensor.well_system_pressure_psi
-            name: "Hydraulic System Pressure"
-          - entity: switch.well_pump_contactor
-            name: "Well Pump Contactor"
-          - entity: binary_sensor.well_pump_dry_run_interlock
-            name: "Dry-Run Safety Lockout"
-
-      - type: entities
-        title: "💦 Multi-Zone Lawn & Turf (SprinklerController-io)"
-        entities:
-          - entity: sensor.sprinkler_flow_rate_gpm
-            name: "Flow Rate (GPM)"
-          - entity: switch.sprinkler_lawn_zone_1_valve
-            name: "Zone 1: Front Lawn"
-          - entity: switch.sprinkler_lawn_zone_2_valve
-            name: "Zone 2: Back Lawn"
-          - entity: binary_sensor.sprinkler_freeze_lockout
-            name: "Freeze Lockout (< 3°C)"
+      - type: horizontal-stack
+        cards:
+          - type: entities
+            title: "🚰 Borehole & Well (WellPumpControl-io)"
+            entities:
+              - entity: sensor.well_casing_water_depth_ft
+                name: "Borehole Depth Column"
+              - entity: sensor.well_system_pressure_psi
+                name: "Hydraulic System Pressure"
+              - entity: switch.well_pump_contactor
+                name: "Well Pump Contactor"
+              - entity: binary_sensor.well_pump_dry_run_interlock
+                name: "Dry-Run Safety Lockout"
+          - type: entities
+            title: "🌧️ Rain Harvesting (RainHarvest-io)"
+            entities:
+              - entity: sensor.rain_harvest_daily_volume_gal
+                name: "Daily Rain Harvested"
+              - entity: sensor.rain_harvest_precipitation_rate_in_hr
+                name: "Precipitation Rate"
+              - entity: switch.rain_first_flush_purge_valve
+                name: "First-Flush Purge Valve"
 
       - type: horizontal-stack
         cards:
           - type: entities
-            title: "🌾 Garden Bed Drip Lines (GardenControl-io)"
+            title: "🛢️ Storage Cisterns (WaterTankControl-io)"
+            entities:
+              - entity: sensor.water_tank_storage_level_percent
+                name: "Cistern Fill Level"
+              - entity: sensor.water_tank_total_gallons
+                name: "Total Gallons In Reserve"
+              - entity: switch.water_tank_transfer_pump
+                name: "Cistern Transfer Pump"
+          - type: entities
+            title: "🔬 Multi-Stage Filtration (FiltrationControl-io)"
+            entities:
+              - entity: sensor.filtration_filter_delta_pressure_psi
+                name: "Filter Delta Pressure (ΔP)"
+              - entity: sensor.filtration_uv_sterilizer_intensity
+                name: "UV Ballast Intensity"
+              - entity: switch.filtration_backwash_cycle_valve
+                name: "Backwash Purge Cycle"
+
+      - type: horizontal-stack
+        cards:
+          - type: entities
+            title: "💦 Lawn & Turf (SprinklerController-io)"
+            entities:
+              - entity: sensor.sprinkler_flow_rate_gpm
+                name: "Flow Rate (GPM)"
+              - entity: switch.sprinkler_lawn_zone_1_valve
+                name: "Zone 1: Front Lawn"
+              - entity: switch.sprinkler_lawn_zone_2_valve
+                name: "Zone 2: Back Lawn"
+              - entity: binary_sensor.sprinkler_freeze_lockout
+                name: "Freeze Lockout (< 3°C)"
+          - type: entities
+            title: "🌾 Garden Drip Lines (GardenControl-io)"
             entities:
               - entity: switch.garden_manifold_zone_raised_beds
                 name: "Raised Beds Valve"
@@ -177,18 +209,9 @@ views:
                 name: "Berry Patch Valve"
               - entity: sensor.garden_daily_et0_loss_inches
                 name: "Daily Evapotranspiration ($ET_0$)"
-          - type: entities
-            title: "💧 Closed-Loop Hydroponics (HydroControl-io)"
-            entities:
-              - entity: switch.hydro_main_recirculation_pump
-                name: "Recirculation Pump"
-              - entity: sensor.hydro_reservoir_water_temp
-                name: "Nutrient Solution Temp"
-              - entity: sensor.hydro_reservoir_level_liters
-                name: "Reservoir Water Volume"
 
   # =========================================================================
-  # VIEW 4: AGRI & GROWING (GreenhouseControl, SoilSense, HydroControl, GardenControl)
+  # VIEW 4: AGRI & GROWING (Greenhouse, Hydro, SoilSense, Compost)
   # =========================================================================
   - title: "Agri & Growing"
     path: "agri"
@@ -213,7 +236,7 @@ views:
       - type: horizontal-stack
         cards:
           - type: entities
-            title: "🧪 Nutrient & pH Dosing Engine (HydroControl-io)"
+            title: "🧪 Nutrient Dosing Engine (HydroControl-io)"
             entities:
               - entity: sensor.hydro_dwc_reservoir_ph
                 name: "Live pH"
@@ -223,8 +246,6 @@ views:
                 name: "Dosing: pH Down Pump"
               - entity: switch.hydro_doser_nutrient_a_pump
                 name: "Dosing: Part A Nutrient"
-              - entity: switch.hydro_doser_nutrient_b_pump
-                name: "Dosing: Part B Nutrient"
           - type: entities
             title: "🌱 Soil Quality & NPK Array (SoilSense-io)"
             entities:
@@ -234,97 +255,40 @@ views:
                 name: "Phosphorus (P)"
               - entity: sensor.soil_field_alpha_potassium
                 name: "Potassium (K)"
-              - entity: sensor.soil_field_alpha_ec
-                name: "Soil EC (Salinity)"
               - entity: sensor.soil_field_alpha_moisture
-                name: "Volumetric Water Content"
+                name: "Volumetric Moisture"
 
-  # =========================================================================
-  # VIEW 5: CLIMATE, AIR & VENTILATION (ClimateControl, AirQuality, FanControl)
-  # =========================================================================
-  - title: "Climate & Air"
-    path: "climate"
-    icon: "mdi:weather-dust"
-    cards:
       - type: entities
-        title: "🌬️ Indoor & Homestead Air Quality (AirQuality-io)"
+        title: "🍂 Thermal Bioreactor & Composting (CompostControl-io)"
         entities:
-          - entity: sensor.air_quality_indoor_pm2_5
-            name: "Fine Particulate (PM2.5)"
-          - entity: sensor.air_quality_indoor_pm10
-            name: "Coarse Particulate (PM10)"
-          - entity: sensor.air_quality_indoor_co2_ppm
-            name: "True NDIR Carbon Dioxide (CO2)"
-          - entity: sensor.air_quality_indoor_voc_index
-            name: "Volatile Organic Compounds (VOC)"
-          - entity: switch.air_quality_scrubber_hvac
-            name: "HEPA Filtration Boost"
-
-      - type: horizontal-stack
-        cards:
-          - type: entities
-            title: "🌡️ HVAC & Heating Zones (ClimateControl-io)"
-            entities:
-              - entity: climate.homestead_main_hvac
-                name: "Main Thermostat"
-              - entity: sensor.climate_woodstove_flue_temp
-                name: "Wood Stove Flue Temp"
-              - entity: switch.climate_fresh_air_damper
-                name: "ERV/HRV Economizer"
-          - type: entities
-            title: "🌀 25kHz PWM Cooling Fans (FanControl.io)"
-            entities:
-              - entity: fan.fan_rack_exhaust_pwm
-                name: "Server Rack PWM Fan"
-              - entity: sensor.fan_rack_exhaust_rpm
-                name: "Tachometer RPM Feedback"
-              - entity: fan.fan_greenhouse_circulation_pwm
-                name: "Canopy Circulation Fan"
+          - entity: sensor.compost_pile_core_temp_c
+            name: "Compost Pile Core Temperature"
+          - entity: sensor.compost_pile_ambient_delta
+            name: "Core vs Ambient Delta (°C)"
+          - entity: switch.compost_aeration_blower
+            name: "Aeration Blower Fan"
 
   # =========================================================================
-  # VIEW 6: HOMESTEAD LOGISTICS & SECURITY
-  # (SecurityControl, LightingControl, WasteControl, PantryControl, WorkshopControl, TransportControl)
+  # VIEW 5: ANIMAL CARE & HOMESTEAD LOGISTICS
+  # (LivestockCare, PantryControl, WorkshopControl, TransportControl, WasteControl)
   # =========================================================================
-  - title: "Homestead Logistics"
-    path: "homestead"
-    icon: "mdi:shield-home"
+  - title: "Livestock & Logistics"
+    path: "logistics"
+    icon: "mdi:barn"
     cards:
       - type: horizontal-stack
         cards:
           - type: entities
-            title: "🛡️ Perimeter & Security (SecurityControl-io)"
+            title: "🐂 Livestock Water & Feeding (LivestockCare-io)"
             entities:
-              - entity: binary_sensor.security_perimeter_alarm
-                name: "Master Perimeter Status"
-              - entity: binary_sensor.security_north_beam_break
-                name: "North Infrared Beam"
-              - entity: binary_sensor.security_driveway_radar
-                name: "24GHz mmWave Driveway Radar"
-              - entity: switch.security_gate_lockout
-                name: "Main Gate Lockout"
-          - type: entities
-            title: "💡 Circadian & Facility Lights (LightingControl-io)"
-            entities:
-              - entity: light.lighting_perimeter_security_led
-                name: "Perimeter Security Floods"
-              - entity: light.lighting_greenhouse_supplemental_led
-                name: "Greenhouse PAR Grow Lights"
-              - entity: light.lighting_barn_high_bay
-                name: "Barn / Equipment High Bays"
-
-      - type: horizontal-stack
-        cards:
-          - type: entities
-            title: "🗑️ Waste & Telemetry (WasteControl-io)"
-            entities:
-              - entity: sensor.waste_trash_fill_percent
-                name: "Trash Bin Fill Level"
-              - entity: sensor.waste_recycle_fill_percent
-                name: "Recycling Bin Fill Level"
-              - entity: sensor.waste_compost_fill_percent
-                name: "Compost Bin Fill Level"
-              - entity: binary_sensor.waste_bin_curbside_placed
-                name: "Bins Moved to Curb"
+              - entity: sensor.livestock_trough_water_temp_c
+                name: "Water Trough Temperature"
+              - entity: binary_sensor.livestock_trough_low_water
+                name: "Trough Low Water Warning"
+              - entity: switch.livestock_trough_heater_relay
+                name: "Trough Freeze Heater"
+              - entity: switch.livestock_coop_door_motor
+                name: "Predator-Proof Coop Door"
           - type: entities
             title: "🥫 Bulk Pantry & Cellar (PantryControl-io)"
             entities:
@@ -355,6 +319,68 @@ views:
                 name: "Tractor Presence"
               - entity: sensor.transport_garage_bay_distance_in
                 name: "Garage Parking Guide"
+
+      - type: entities
+        title: "🗑️ Waste & Telemetry (WasteControl-io)"
+        entities:
+          - entity: sensor.waste_trash_fill_percent
+            name: "Trash Bin Fill Level"
+          - entity: sensor.waste_recycle_fill_percent
+            name: "Recycling Bin Fill Level"
+          - entity: sensor.waste_compost_fill_percent
+            name: "Compost Bin Fill Level"
+          - entity: binary_sensor.waste_bin_curbside_placed
+            name: "Bins Moved to Curb"
+
+  # =========================================================================
+  # VIEW 6: CLIMATE, ATMOSPHERE & SECURITY
+  # (ClimateControl, AirQuality, FanControl, SecurityControl, LightingControl)
+  # =========================================================================
+  - title: "Atmosphere & Security"
+    path: "security"
+    icon: "mdi:shield-home"
+    cards:
+      - type: horizontal-stack
+        cards:
+          - type: entities
+            title: "🌬️ Air Quality (AirQuality-io)"
+            entities:
+              - entity: sensor.air_quality_indoor_pm2_5
+                name: "Fine Particulate (PM2.5)"
+              - entity: sensor.air_quality_indoor_co2_ppm
+                name: "NDIR Carbon Dioxide (CO2)"
+              - entity: switch.air_quality_scrubber_hvac
+                name: "Filtration Boost"
+          - type: entities
+            title: "🌡️ HVAC & Flue (ClimateControl-io)"
+            entities:
+              - entity: climate.homestead_main_hvac
+                name: "Main Thermostat"
+              - entity: sensor.climate_woodstove_flue_temp
+                name: "Wood Stove Flue Temp"
+
+      - type: horizontal-stack
+        cards:
+          - type: entities
+            title: "🛡️ Perimeter & Security (SecurityControl-io)"
+            entities:
+              - entity: binary_sensor.security_perimeter_alarm
+                name: "Master Perimeter Status"
+              - entity: binary_sensor.security_north_beam_break
+                name: "North Infrared Beam"
+              - entity: binary_sensor.security_driveway_radar
+                name: "24GHz mmWave Driveway Radar"
+              - entity: switch.security_gate_lockout
+                name: "Main Gate Lockout"
+          - type: entities
+            title: "💡 Circadian & Facility Lights (LightingControl-io)"
+            entities:
+              - entity: light.lighting_perimeter_security_led
+                name: "Perimeter Security Floods"
+              - entity: light.lighting_greenhouse_supplemental_led
+                name: "Greenhouse PAR Grow Lights"
+              - entity: light.lighting_barn_high_bay
+                name: "Barn High Bays"
 
   # =========================================================================
   # VIEW 7: MASTER CONTROL & DATAHUB (Control-io, DataHub-io)

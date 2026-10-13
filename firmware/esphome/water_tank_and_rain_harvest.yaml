@@ -1,0 +1,112 @@
+# WaterTankControl & RainHarvest: Cistern Telemetry & Rain Harvesting Node
+# Part of the MyHomeStead.io Smart Homestead Ecosystem (Local-First)
+# Hardware: ESP32 with JSN-SR04T Waterproof Ultrasonic & Tipping Bucket Rain Gauge
+
+esphome:
+  name: water-tank-rain-node
+  friendly_name: "Water Tank & Rain Harvest Node"
+  comment: "Local-first cistern volume monitoring, rain capture & transfer pump controller"
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+wifi:
+  ssid: "!secret wifi_ssid"
+  password: "!secret wifi_password"
+
+api:
+  encryption:
+    key: "!secret water_tank_noise_key"
+
+ota:
+  - platform: esphome
+
+logger:
+  level: INFO
+
+# GPIO Pin Allocations:
+# GPIO 13: JSN-SR04T Ultrasonic Trigger
+# GPIO 14: JSN-SR04T Ultrasonic Echo
+# GPIO 34: Tipping Bucket Rain Gauge Pulse Pin (0.01" per tip, External Pullup)
+# GPIO 4: First-Flush Purge Solenoid Valve (Active-Low)
+# GPIO 18: Cistern Transfer Booster Pump Relay
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO34
+      mode: INPUT
+      inverted: true
+    name: "Rain Gauge Tip Impulse"
+    id: rain_tip
+    filters:
+      - delayed_on: 50ms
+      - delayed_off: 50ms
+
+sensor:
+  # 1. Cistern Fill Level (JSN-SR04T Ultrasonic)
+  - platform: ultrasonic
+    trigger_pin: GPIO13
+    echo_pin: GPIO14
+    name: "Cistern Air Gap Distance"
+    id: tank_distance
+    update_interval: 10s
+    unit_of_measurement: "m"
+    accuracy_decimals: 2
+    filters:
+      - filter_out: nan
+      - median:
+          window_size: 5
+          send_every: 3
+
+  # Convert air gap to tank fill percentage (assuming 2.0m total tank depth)
+  - platform: template
+    name: "Cistern Storage Fill Level"
+    id: cistern_fill_percent
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    device_class: battery
+    state_class: measurement
+    lambda: |-
+      float distance = id(tank_distance).state;
+      if (isnan(distance)) return {};
+      // 0.2m = 100% full (minimum sensor deadband), 2.0m = 0% empty
+      float percent = (2.0 - distance) / (2.0 - 0.2) * 100.0;
+      if (percent > 100.0) percent = 100.0;
+      if (percent < 0.0) percent = 0.0;
+      return percent;
+
+  # 2. Daily Rain Capture Rate
+  - platform: pulse_counter
+    pin: GPIO34
+    name: "Rainfall Rate"
+    id: rainfall_rate
+    unit_of_measurement: "in/hr"
+    filters:
+      # Each tip = 0.01 inches
+      - multiply: 0.01
+
+switch:
+  - platform: gpio
+    pin:
+      number: GPIO4
+      inverted: true
+    name: "First-Flush Purge Valve"
+    id: first_flush_valve
+    # Watchdog: auto close after 5 minutes
+    on_turn_on:
+      - delay: 5min
+      - switch.turn_off: first_flush_valve
+
+  - platform: gpio
+    pin:
+      number: GPIO18
+      inverted: true
+    name: "Cistern Transfer Pump"
+    id: transfer_pump
+    # Watchdog: auto close after 30 minutes
+    on_turn_on:
+      - delay: 30min
+      - switch.turn_off: transfer_pump

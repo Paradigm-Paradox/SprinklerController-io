@@ -1,0 +1,101 @@
+# LivestockCare-io: Automatic Water Trough, Heater & Coop Door Controller
+# Part of the MyHomeStead.io Smart Homestead Ecosystem (Local-First)
+# Hardware: ESP32 with DS18B20 Waterproof Temperature, Float Switch & Relays
+
+esphome:
+  name: livestock-care-node
+  friendly_name: "Livestock Care Node"
+  comment: "Local-first water trough freeze protection, low water alarm & coop controller"
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+wifi:
+  ssid: "!secret wifi_ssid"
+  password: "!secret wifi_password"
+
+api:
+  encryption:
+    key: "!secret livestock_noise_key"
+
+ota:
+  - platform: esphome
+
+logger:
+  level: INFO
+
+# GPIO Pin Allocations:
+# GPIO 23: 1-Wire Bus (DS18B20 Waterproof Probe in Trough with 4.7kΩ pull-up)
+# GPIO 34: Float Switch (Low Water Level Indicator)
+# GPIO 4: High-Current Solid State Relay for Trough Submersible De-Icer
+# GPIO 19: Coop Door Motor Open Relay
+# GPIO 21: Coop Door Motor Close Relay
+
+dallas:
+  - pin: GPIO23
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO34
+      mode: INPUT
+      inverted: true
+    name: "Livestock Trough Low Water Alarm"
+    id: trough_low_water
+    device_class: problem
+    filters:
+      - delayed_on: 200ms
+      - delayed_off: 200ms
+
+sensor:
+  - platform: dallas
+    name: "Livestock Trough Water Temperature"
+    id: trough_water_temp
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+    device_class: temperature
+    state_class: measurement
+    # Local autonomous freeze protection loop:
+    on_value_range:
+      - below: 2.0
+        then:
+          - logger.log: "FREEZE WARNING: Trough temp below 2C! Engaging heater SSR."
+          - switch.turn_on: trough_heater
+      - above: 6.0
+        then:
+          - switch.turn_off: trough_heater
+
+switch:
+  - platform: gpio
+    pin:
+      number: GPIO4
+      inverted: true
+    name: "Trough De-Icer Heater"
+    id: trough_heater
+    icon: "mdi:water-boiler"
+    # Watchdog: auto turn off after 3 hours maximum
+    on_turn_on:
+      - delay: 180min
+      - switch.turn_off: trough_heater
+
+  - platform: gpio
+    pin:
+      number: GPIO19
+      inverted: true
+    name: "Coop Door Motor Open"
+    id: coop_door_open
+    on_turn_on:
+      - delay: 30s
+      - switch.turn_off: coop_door_open
+
+  - platform: gpio
+    pin:
+      number: GPIO21
+      inverted: true
+    name: "Coop Door Motor Close"
+    id: coop_door_close
+    on_turn_on:
+      - delay: 30s
+      - switch.turn_off: coop_door_close
