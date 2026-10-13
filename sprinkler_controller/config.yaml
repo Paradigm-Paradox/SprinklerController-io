@@ -12,8 +12,9 @@ startup: application
 boot: auto
 homeassistant_api: true
 ingress: true
-ingress_port: 8098
+ingress_port: 8708
 panel_icon: "mdi:sprinkler-variant"
+
 panel_title: "Sprinklers"
 init: false
 

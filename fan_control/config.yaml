@@ -12,8 +12,9 @@ startup: application
 boot: auto
 homeassistant_api: true
 ingress: true
-ingress_port: 8095
+ingress_port: 8724
 panel_icon: "mdi:fan"
+
 panel_title: "FanControl"
 init: false
 

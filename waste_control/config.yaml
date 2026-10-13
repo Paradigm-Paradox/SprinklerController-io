@@ -11,7 +11,7 @@ startup: application
 boot: auto
 homeassistant_api: true
 ingress: true
-ingress_port: 8099
+ingress_port: 8715
 panel_icon: "mdi:trash-can-outline"
 panel_title: "WasteControl"
 map:
